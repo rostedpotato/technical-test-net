@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend-api:
+    build:
+      context: .
+      dockerfile: src/ProductManagement.API/Dockerfile
+    container_name: product-management-api
+    ports:
+      - "5187:5187"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5187
+    volumes:
+      - api-data:/app
+    restart: unless-stopped
+
+  frontend-web:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: product-management-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend-api
+    restart: unless-stopped
+
+volumes:
+  api-data:
