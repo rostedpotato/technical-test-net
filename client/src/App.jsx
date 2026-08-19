@@ -1,122 +1,242 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState, useEffect, useCallback } from 'react';
+import { api, tokenStorage } from './api/apiService';
+import Navbar from './components/Navbar';
+import AuthModal from './components/AuthModal';
+import ProductFormModal from './components/ProductFormModal';
+import FilterBar from './components/FilterBar';
+import ProductCard from './components/ProductCard';
+import Pagination from './components/Pagination';
+import Toast from './components/Toast';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [user, setUser] = useState(tokenStorage.getUser());
+  const [products, setProducts] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalCount: 0 });
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Filters State
+  const [filters, setFilters] = useState({
+    keyword: '',
+    minPrice: '',
+    maxPrice: '',
+    sortBy: 'CreatedAt',
+    sortDescending: true,
+    page: 1,
+    pageSize: 6
+  });
+
+  // Modal States
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.products.getAll(filters);
+      if (res.success && res.data) {
+        setProducts(res.data.items);
+        setPagination({
+          page: res.data.page,
+          totalPages: res.data.totalPages,
+          totalCount: res.data.totalCount
+        });
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to load products.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Auth Handlers
+  const handleLogin = async (usernameOrEmail, password) => {
+    const res = await api.auth.login(usernameOrEmail, password);
+    setUser(tokenStorage.getUser());
+    showToast(`Welcome back, ${res.data.username}!`, 'success');
+  };
+
+  const handleRegister = async (username, email, password) => {
+    const res = await api.auth.register(username, email, password);
+    setUser(tokenStorage.getUser());
+    showToast(`Registration successful. Welcome, ${res.data.username}!`, 'success');
+  };
+
+  const handleLogout = () => {
+    api.auth.logout();
+    setUser(null);
+    showToast('Logged out successfully.', 'success');
+  };
+
+  // Product CRUD Handlers
+  const handleOpenAddProduct = () => {
+    if (!user) {
+      showToast('Please login first to create products.', 'error');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setProductToEdit(null);
+    setIsProductModalOpen(true);
+  };
+
+  const handleOpenEditProduct = (product) => {
+    if (!user) {
+      showToast('Please login first to edit products.', 'error');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setProductToEdit(product);
+    setIsProductModalOpen(true);
+  };
+
+  const handleSaveProduct = async (productData) => {
+    if (productToEdit) {
+      await api.products.update(productToEdit.id, productData);
+      showToast('Product updated successfully!', 'success');
+    } else {
+      await api.products.create(productData);
+      showToast('Product created successfully!', 'success');
+    }
+    fetchProducts();
+  };
+
+  const handleDeleteProduct = async (id, name) => {
+    if (!user) {
+      showToast('Please login first to delete products.', 'error');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
+      try {
+        await api.products.delete(id);
+        showToast(`Product "${name}" deleted successfully!`, 'success');
+        fetchProducts();
+      } catch (err) {
+        showToast(err.message || 'Failed to delete product.', 'error');
+      }
+    }
+  };
+
+  // Filter Handlers
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      keyword: '',
+      minPrice: '',
+      maxPrice: '',
+      sortBy: 'CreatedAt',
+      sortDescending: true,
+      page: 1,
+      pageSize: 6
+    });
+  };
+
+  const handlePageChange = (newPage) => {
+    setFilters(prev => ({ ...prev, page: newPage }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-container">
+      <Navbar 
+        user={user}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
+        onOpenAddProduct={handleOpenAddProduct}
+      />
 
-      <div className="ticks"></div>
+      <main className="main-content">
+        {/* Banner Section */}
+        <section className="hero-banner">
+          <div className="hero-content">
+            <h1>Product Management Platform</h1>
+            <p>Manage, search, filter, and organize your product catalog with secure JWT-protected REST APIs.</p>
+          </div>
+        </section>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {/* Filter Section */}
+        <FilterBar 
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onSearch={fetchProducts}
+          onReset={handleResetFilters}
+        />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {/* Product List Section */}
+        <section className="catalog-section">
+          <div className="catalog-header">
+            <h2>Product Catalog</h2>
+            <span className="badge-count">{pagination.totalCount} Products Found</span>
+          </div>
+
+          {loading ? (
+            <div className="loading-state">
+              <div className="spinner"></div>
+              <p>Loading products...</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="empty-state">
+              <span className="empty-icon">📂</span>
+              <h3>No products found</h3>
+              <p>Try adjusting your search keywords or price filters.</p>
+              <button className="btn btn-outline" onClick={handleResetFilters}>
+                Clear All Filters
+              </button>
+            </div>
+          ) : (
+            <div className="products-grid">
+              {products.map(product => (
+                <ProductCard 
+                  key={product.id}
+                  product={product}
+                  user={user}
+                  onEdit={handleOpenEditProduct}
+                  onDelete={handleDeleteProduct}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          <Pagination 
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalCount={pagination.totalCount}
+            onPageChange={handlePageChange}
+          />
+        </section>
+      </main>
+
+      {/* Modals */}
+      <AuthModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLogin}
+        onRegisterSuccess={handleRegister}
+      />
+
+      <ProductFormModal 
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSave={handleSaveProduct}
+        productToEdit={productToEdit}
+      />
+
+      {/* Toast Notification */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+    </div>
+  );
 }
-
-export default App
