@@ -128,8 +128,22 @@ export default function App() {
   };
 
   // Filter Handlers
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+  const handleFilterChange = (updates) => {
+    setFilters(prev => {
+      let changed = false;
+      const next = { ...prev };
+
+      if (typeof updates === 'object' && updates !== null) {
+        for (const [key, val] of Object.entries(updates)) {
+          if (next[key] !== val) {
+            next[key] = val;
+            changed = true;
+          }
+        }
+      }
+
+      return changed ? { ...next, page: 1 } : prev;
+    });
   };
 
   const handleResetFilters = () => {

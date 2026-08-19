@@ -53,13 +53,13 @@ public class ProductRepository : IProductRepository
 
         var totalCount = await query.CountAsync();
 
-        // Dynamic Sorting
+        // Dynamic Sorting (Casting decimal to double for SQLite ORDER BY support)
         query = (parameters.SortBy?.ToLower(), parameters.SortDescending) switch
         {
             ("name", true) => query.OrderByDescending(p => p.Name),
             ("name", false) => query.OrderBy(p => p.Name),
-            ("price", true) => query.OrderByDescending(p => p.Price),
-            ("price", false) => query.OrderBy(p => p.Price),
+            ("price", true) => query.OrderByDescending(p => (double)p.Price),
+            ("price", false) => query.OrderBy(p => (double)p.Price),
             ("createdat", false) => query.OrderBy(p => p.CreatedAt),
             _ => query.OrderByDescending(p => p.CreatedAt) // default
         };

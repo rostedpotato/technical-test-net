@@ -194,12 +194,30 @@ body {
   gap: 0.35rem;
 }
 
+.filter-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .filter-label {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--gray-700);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.debouncing-indicator {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .search-input-wrapper {

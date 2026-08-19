@@ -1,10 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-export default function FilterBar({ filters, onFilterChange, onSearch, onReset }) {
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      onSearch();
+export default function FilterBar({ filters, onFilterChange, onReset }) {
+  // Local input state for smooth typing without lag
+  const [keywordInput, setKeywordInput] = useState(filters.keyword || '');
+  const [minPriceInput, setMinPriceInput] = useState(filters.minPrice !== undefined ? filters.minPrice : '');
+  const [maxPriceInput, setMaxPriceInput] = useState(filters.maxPrice !== undefined ? filters.maxPrice : '');
+  const [isDebouncing, setIsDebouncing] = useState(false);
+
+  const isInitialMount = useRef(true);
+
+  // Sync local inputs if external filters are reset or changed
+  useEffect(() => {
+    setKeywordInput(filters.keyword || '');
+    setMinPriceInput(filters.minPrice !== undefined ? filters.minPrice : '');
+    setMaxPriceInput(filters.maxPrice !== undefined ? filters.maxPrice : '');
+  }, [filters.keyword, filters.minPrice, filters.maxPrice]);
+
+  // Debounce for Keyword, MinPrice, and MaxPrice (400ms delay)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
+
+    setIsDebouncing(true);
+    const handler = setTimeout(() => {
+      onFilterChange({
+        keyword: keywordInput,
+        minPrice: minPriceInput,
+        maxPrice: maxPriceInput
+      });
+      setIsDebouncing(false);
+    }, 400); // 400ms debounce delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [keywordInput, minPriceInput, maxPriceInput]);
+
+  const handleResetClick = () => {
+    setKeywordInput('');
+    setMinPriceInput('');
+    setMaxPriceInput('');
+    onReset();
   };
 
   return (
@@ -12,16 +50,18 @@ export default function FilterBar({ filters, onFilterChange, onSearch, onReset }
       <div className="filter-grid">
         {/* Keyword Search */}
         <div className="filter-item filter-search">
-          <label className="filter-label">Search Product</label>
+          <div className="filter-label-row">
+            <label className="filter-label">Search Product</label>
+            {isDebouncing && <span className="debouncing-indicator">⏳ Searching...</span>}
+          </div>
           <div className="search-input-wrapper">
             <span className="search-icon">🔍</span>
             <input
               type="text"
               className="input-field search-input"
-              placeholder="Search by name or description..."
-              value={filters.keyword}
-              onChange={(e) => onFilterChange('keyword', e.target.value)}
-              onKeyDown={handleKeyDown}
+              placeholder="Search by name or description (auto debounced)..."
+              value={keywordInput}
+              onChange={(e) => setKeywordInput(e.target.value)}
             />
           </div>
         </div>
@@ -35,9 +75,8 @@ export default function FilterBar({ filters, onFilterChange, onSearch, onReset }
             step="1"
             className="input-field"
             placeholder="Min 0"
-            value={filters.minPrice}
-            onChange={(e) => onFilterChange('minPrice', e.target.value)}
-            onKeyDown={handleKeyDown}
+            value={minPriceInput}
+            onChange={(e) => setMinPriceInput(e.target.value)}
           />
         </div>
 
@@ -50,9 +89,8 @@ export default function FilterBar({ filters, onFilterChange, onSearch, onReset }
             step="1"
             className="input-field"
             placeholder="Max 10000"
-            value={filters.maxPrice}
-            onChange={(e) => onFilterChange('maxPrice', e.target.value)}
-            onKeyDown={handleKeyDown}
+            value={maxPriceInput}
+            onChange={(e) => setMaxPriceInput(e.target.value)}
           />
         </div>
 
@@ -64,8 +102,10 @@ export default function FilterBar({ filters, onFilterChange, onSearch, onReset }
             value={`${filters.sortBy}_${filters.sortDescending}`}
             onChange={(e) => {
               const [sortBy, sortDesc] = e.target.value.split('_');
-              onFilterChange('sortBy', sortBy);
-              onFilterChange('sortDescending', sortDesc === 'true');
+              onFilterChange({
+                sortBy: sortBy,
+                sortDescending: sortDesc === 'true'
+              });
             }}
           >
             <option value="CreatedAt_true">Newest First</option>
@@ -79,11 +119,8 @@ export default function FilterBar({ filters, onFilterChange, onSearch, onReset }
 
         {/* Action Buttons */}
         <div className="filter-actions">
-          <button className="btn btn-primary" onClick={onSearch}>
-            Search
-          </button>
-          <button className="btn btn-outline" onClick={onReset}>
-            Reset
+          <button className="btn btn-outline" onClick={handleResetClick} title="Reset all filters">
+            🔄 Reset
           </button>
         </div>
       </div>
