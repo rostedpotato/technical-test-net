@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ProductManagement.Core.Entities;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace ProductManagement.Infrastructure.Data;
 
@@ -19,8 +17,8 @@ public static class DbInitializer
             {
                 logger.LogInformation("Seeding initial users...");
 
-                var adminPasswordHash = HashPassword("Admin123!");
-                var userPasswordHash = HashPassword("User123!");
+                var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!");
+                var userPasswordHash = BCrypt.Net.BCrypt.HashPassword("User123!");
 
                 var users = new List<User>
                 {
@@ -108,12 +106,5 @@ public static class DbInitializer
             logger.LogError(ex, "An error occurred while initializing the database.");
             throw;
         }
-    }
-
-    private static string HashPassword(string password)
-    {
-        using var sha256 = SHA256.Create();
-        var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(hashedBytes);
     }
 }
