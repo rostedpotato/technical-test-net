@@ -36,6 +36,10 @@ export default function App() {
   };
 
   const fetchProducts = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await api.products.getAll(filters);
@@ -52,9 +56,11 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, user]);
 
   useEffect(() => {
+    // Data fetching synchronizes the UI with the authenticated API state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProducts();
   }, [fetchProducts]);
 
@@ -74,14 +80,16 @@ export default function App() {
   const handleLogout = () => {
     api.auth.logout();
     setUser(null);
+    setProducts([]);
+    setPagination({ page: 1, totalPages: 1, totalCount: 0 });
     showToast('Logged out successfully.', 'success');
   };
 
   // Product CRUD Handlers
   const handleOpenAddProduct = () => {
-    if (!user) {
-      showToast('Please login first to create products.', 'error');
-      setIsAuthModalOpen(true);
+    if (!user || user.role?.toLowerCase() !== 'admin') {
+      showToast(user ? 'Admin access is required to create products.' : 'Please login first to create products.', 'error');
+      if (!user) setIsAuthModalOpen(true);
       return;
     }
     setProductToEdit(null);
@@ -89,9 +97,9 @@ export default function App() {
   };
 
   const handleOpenEditProduct = (product) => {
-    if (!user) {
-      showToast('Please login first to edit products.', 'error');
-      setIsAuthModalOpen(true);
+    if (!user || user.role?.toLowerCase() !== 'admin') {
+      showToast(user ? 'Admin access is required to edit products.' : 'Please login first to edit products.', 'error');
+      if (!user) setIsAuthModalOpen(true);
       return;
     }
     setProductToEdit(product);
@@ -110,9 +118,9 @@ export default function App() {
   };
 
   const handleDeleteProduct = async (id, name) => {
-    if (!user) {
-      showToast('Please login first to delete products.', 'error');
-      setIsAuthModalOpen(true);
+    if (!user || user.role?.toLowerCase() !== 'admin') {
+      showToast(user ? 'Admin access is required to delete products.' : 'Please login first to delete products.', 'error');
+      if (!user) setIsAuthModalOpen(true);
       return;
     }
 
@@ -128,7 +136,7 @@ export default function App() {
   };
 
   // Filter Handlers
-  const handleFilterChange = (updates) => {
+  const handleFilterChange = useCallback((updates) => {
     setFilters(prev => {
       let changed = false;
       const next = { ...prev };
@@ -144,9 +152,9 @@ export default function App() {
 
       return changed ? { ...next, page: 1 } : prev;
     });
-  };
+  }, []);
 
-  const handleResetFilters = () => {
+  const handleResetFilters = useCallback(() => {
     setFilters({
       keyword: '',
       minPrice: '',
@@ -156,7 +164,7 @@ export default function App() {
       page: 1,
       pageSize: 6
     });
-  };
+  }, []);
 
   const handlePageChange = (newPage) => {
     setFilters(prev => ({ ...prev, page: newPage }));

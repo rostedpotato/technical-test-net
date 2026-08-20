@@ -6,6 +6,7 @@ using ProductManagement.Core.Interfaces;
 namespace ProductManagement.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
@@ -23,6 +24,14 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<PagedResult<ProductDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProducts([FromQuery] ProductQueryParameters parameters)
     {
+        if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue &&
+            parameters.MinPrice.Value > parameters.MaxPrice.Value)
+        {
+            return BadRequest(ApiResponse<PagedResult<ProductDto>>.FailureResponse(
+                "Validation error.",
+                new List<string> { "MinPrice cannot be greater than MaxPrice." }));
+        }
+
         if (!ModelState.IsValid)
         {
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
@@ -53,7 +62,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Create a new product (Requires JWT Authorization).
     /// </summary>
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status400BadRequest)]
@@ -73,7 +82,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Update an existing product by ID (Requires JWT Authorization).
     /// </summary>
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status400BadRequest)]
@@ -99,7 +108,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Delete a product by ID (Requires JWT Authorization).
     /// </summary>
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status404NotFound)]

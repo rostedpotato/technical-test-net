@@ -20,12 +20,14 @@ export default function Navbar({ user, onOpenAuth, onLogout, onOpenAddProduct })
                 <span className="user-name">{user.username}</span>
                 <span className="user-role">{user.role}</span>
               </div>
-              <button 
-                className="btn btn-primary"
-                onClick={onOpenAddProduct}
-              >
-                ➕ Add Product
-              </button>
+              {user.role?.toLowerCase() === 'admin' && (
+                <button
+                  className="btn btn-primary"
+                  onClick={onOpenAddProduct}
+                >
+                  ➕ Add Product
+                </button>
+              )}
               <button 
                 className="btn btn-outline"
                 onClick={onLogout}

@@ -20,6 +20,7 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Register a new user account.
     /// </summary>
+    [AllowAnonymous]
     [HttpPost("register")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status400BadRequest)]
@@ -46,6 +47,7 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Authenticate user and obtain JWT token.
     /// </summary>
+    [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status401Unauthorized)]

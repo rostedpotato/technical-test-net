@@ -19,8 +19,12 @@ public class TokenService : ITokenService
 
     public string GenerateToken(User user)
     {
-        var secret = _configuration["JwtSettings:Secret"] 
-            ?? "SuperSecretKeyForProductManagementApiAssessment2026!#*$";
+        var secret = _configuration["JwtSettings:Secret"]
+            ?? throw new InvalidOperationException("JwtSettings:Secret must be configured through user-secrets or an environment variable.");
+        if (Encoding.UTF8.GetByteCount(secret) < 32)
+        {
+            throw new InvalidOperationException("JwtSettings:Secret must be at least 32 bytes long.");
+        }
         var issuer = _configuration["JwtSettings:Issuer"] ?? "ProductManagementAPI";
         var audience = _configuration["JwtSettings:Audience"] ?? "ProductManagementClients";
         var expiryMinutes = int.TryParse(_configuration["JwtSettings:ExpiryMinutes"], out var exp) ? exp : 120;

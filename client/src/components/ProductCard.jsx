@@ -1,6 +1,7 @@
 import React from 'react';
 
 export default function ProductCard({ product, user, onEdit, onDelete }) {
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
   const formattedPrice = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD'
@@ -27,22 +28,24 @@ export default function ProductCard({ product, user, onEdit, onDelete }) {
           <span className="meta-text">Added {formattedDate}</span>
         </div>
 
-        <div className="card-actions">
-          <button 
-            className="btn btn-sm btn-edit"
-            onClick={() => onEdit(product)}
-            title="Edit product"
-          >
-            ✏️ Edit
-          </button>
-          <button 
-            className="btn btn-sm btn-delete"
-            onClick={() => onDelete(product.id, product.name)}
-            title="Delete product"
-          >
-            🗑️ Delete
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="card-actions">
+            <button
+              className="btn btn-sm btn-edit"
+              onClick={() => onEdit(product)}
+              title="Edit product"
+            >
+              ✏️ Edit
+            </button>
+            <button
+              className="btn btn-sm btn-delete"
+              onClick={() => onDelete(product.id, product.name)}
+              title="Delete product"
+            >
+              🗑️ Delete
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

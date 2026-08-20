@@ -1,9 +1,11 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ProductManagement.API.Middleware;
+using ProductManagement.Core.DTOs;
 using ProductManagement.Core.Interfaces;
 using ProductManagement.Infrastructure.Data;
 using ProductManagement.Infrastructure.Repositories;
@@ -50,8 +52,12 @@ try
     builder.Services.AddScoped<IProductService, ProductService>();
 
     // 4. Configure JWT Authentication
-    var jwtSecret = builder.Configuration["JwtSettings:Secret"] 
-        ?? "SuperSecretKeyForProductManagementApiAssessment2026!#*$";
+    var jwtSecret = builder.Configuration["JwtSettings:Secret"]
+        ?? throw new InvalidOperationException("JwtSettings:Secret must be configured through user-secrets or an environment variable.");
+    if (Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+    {
+        throw new InvalidOperationException("JwtSettings:Secret must be at least 32 bytes long.");
+    }
     var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? "ProductManagementAPI";
     var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? "ProductManagementClients";
 
@@ -78,6 +84,23 @@ try
     });
 
     builder.Services.AddAuthorization();
+
+    // Keep validation failures consistent with the application's API response envelope.
+    builder.Services.Configure<ApiBehaviorOptions>(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState.Values
+                .SelectMany(value => value.Errors)
+                .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage)
+                    ? "The supplied value is invalid."
+                    : error.ErrorMessage)
+                .ToList();
+
+            return new BadRequestObjectResult(
+                ApiResponse<object>.FailureResponse("Validation error.", errors));
+        };
+    });
 
     // 5. Add Controllers
     builder.Services.AddControllers();
@@ -120,13 +143,34 @@ try
     });
 
     // 7. Add CORS for Frontend integration
+    var allowedOrigins = builder.Configuration
+        .GetSection("AllowedOrigins")
+        .GetChildren()
+        .Select(section => section.Value)
+        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+        .Cast<string>()
+        .ToArray();
+
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("AllowAll", policy =>
+        options.AddPolicy("Frontend", policy =>
         {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
+            if (builder.Environment.IsDevelopment())
+            {
+                policy.SetIsOriginAllowed(_ => true)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            }
+            else if (allowedOrigins.Length > 0)
+            {
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            }
+            else
+            {
+                policy.SetIsOriginAllowed(_ => false);
+            }
         });
     });
 
@@ -154,8 +198,12 @@ try
         app.UseSwaggerUI();
     }
 
-    app.UseHttpsRedirection();
-    app.UseCors("AllowAll");
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
+
+    app.UseCors("Frontend");
 
     app.UseAuthentication();
     app.UseAuthorization();

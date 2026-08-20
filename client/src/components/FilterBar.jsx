@@ -11,6 +11,7 @@ export default function FilterBar({ filters, onFilterChange, onReset }) {
 
   // Sync local inputs if external filters are reset or changed
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setKeywordInput(filters.keyword || '');
     setMinPriceInput(filters.minPrice !== undefined ? filters.minPrice : '');
     setMaxPriceInput(filters.maxPrice !== undefined ? filters.maxPrice : '');
@@ -36,7 +37,7 @@ export default function FilterBar({ filters, onFilterChange, onReset }) {
     return () => {
       clearTimeout(handler);
     };
-  }, [keywordInput, minPriceInput, maxPriceInput]);
+  }, [keywordInput, minPriceInput, maxPriceInput, onFilterChange]);
 
   const handleResetClick = () => {
     setKeywordInput('');

@@ -18,15 +18,17 @@ public class AuthService : IAuthService
     public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
     {
         var errors = new List<string>();
+        var username = dto.Username.Trim();
+        var email = dto.Email.Trim().ToLowerInvariant();
 
-        if (await _userRepository.ExistsByUsernameAsync(dto.Username))
+        if (await _userRepository.ExistsByUsernameAsync(username))
         {
-            errors.Add($"Username '{dto.Username}' is already taken.");
+            errors.Add($"Username '{username}' is already taken.");
         }
 
-        if (await _userRepository.ExistsByEmailAsync(dto.Email))
+        if (await _userRepository.ExistsByEmailAsync(email))
         {
-            errors.Add($"Email '{dto.Email}' is already registered.");
+            errors.Add($"Email '{email}' is already registered.");
         }
 
         if (errors.Any())
@@ -38,8 +40,8 @@ public class AuthService : IAuthService
 
         var newUser = new User
         {
-            Username = dto.Username.Trim(),
-            Email = dto.Email.Trim().ToLower(),
+            Username = username,
+            Email = email,
             PasswordHash = passwordHash,
             Role = "User",
             CreatedAt = DateTime.UtcNow

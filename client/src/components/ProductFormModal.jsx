@@ -11,6 +11,7 @@ export default function ProductFormModal({ isOpen, onClose, onSave, productToEdi
 
   useEffect(() => {
     if (productToEdit) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         name: productToEdit.name || '',
         description: productToEdit.description || '',
