@@ -11,8 +11,6 @@ services:
       - ASPNETCORE_URLS=http://+:5187
       - JwtSettings__Secret=${JWT_SECRET:-SuperSecretKeyForProductManagementApiAssessment2026!#*$}
       - AllowedOrigins__0=${FRONTEND_ORIGIN:-http://localhost:3000}
-    volumes:
-      - api-data:/app
     restart: unless-stopped
 
   frontend-web:
@@ -27,6 +25,3 @@ services:
     depends_on:
       - backend-api
     restart: unless-stopped
-
-volumes:
-  api-data:
