@@ -6,7 +6,6 @@ using ProductManagement.Core.Interfaces;
 namespace ProductManagement.API.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
@@ -20,6 +19,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Get list of products with optional search keyword, price range filter, sorting, and pagination.
     /// </summary>
+    [AllowAnonymous]
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<ProductDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProducts([FromQuery] ProductQueryParameters parameters)

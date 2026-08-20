@@ -36,10 +36,6 @@ export default function App() {
   };
 
   const fetchProducts = useCallback(async () => {
-    if (!user) {
-      return;
-    }
-
     setLoading(true);
     try {
       const res = await api.products.getAll(filters);
@@ -56,11 +52,9 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [filters, user]);
+  }, [filters]);
 
   useEffect(() => {
-    // Data fetching synchronizes the UI with the authenticated API state.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProducts();
   }, [fetchProducts]);
 
@@ -80,8 +74,6 @@ export default function App() {
   const handleLogout = () => {
     api.auth.logout();
     setUser(null);
-    setProducts([]);
-    setPagination({ page: 1, totalPages: 1, totalCount: 0 });
     showToast('Logged out successfully.', 'success');
   };
 
